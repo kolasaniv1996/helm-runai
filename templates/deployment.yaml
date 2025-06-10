@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+      - name: minio
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        args:
+          - server
+          - /data
+        env:
+        - name: MINIO_ROOT_USER
+          value: "{{ .Values.minio.rootUser }}"
+        - name: MINIO_ROOT_PASSWORD
+          value: "{{ .Values.minio.rootPassword }}"
+        - name: MINIO_BROWSER
+          value: "{{ .Values.minio.browser }}"
+        - name: MINIO_CONSOLE_ADDRESS
+          value: "{{ .Values.minio.consoleAddress }}"
+        ports:
+        - containerPort: 9000
+          name: api
+        - containerPort: 9090
+          name: console
+        volumeMounts:
+        - name: minio-storage
+          mountPath: /data
+      volumes:
+      - name: minio-storage
+        persistentVolumeClaim:
+          claimName: minio-pvc
