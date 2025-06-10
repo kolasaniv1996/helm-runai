@@ -27,6 +27,8 @@ spec:
           value: "{{ .Values.minio.browser }}"
         - name: MINIO_CONSOLE_ADDRESS
           value: "{{ .Values.minio.consoleAddress }}"
+        - name: INFERENCE_SERVICE_URL
+          value: "{{ .Values.inferenceServiceUrl }}"
         ports:
         - containerPort: 9000
           name: api
