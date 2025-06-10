@@ -9,6 +9,7 @@ minio:
   rootPassword: minioadmin123
   browser: "on"
   consoleAddress: ":9090"
+  existingClaim: ""
 
 resources:
   requests:
