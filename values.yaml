@@ -17,3 +17,5 @@ resources:
 
 storage:
   size: 1Gi
+
+inferenceServiceUrl: http://triton.runai-test.svc.cluster.local
