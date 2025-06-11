@@ -1,0 +1,45 @@
+import requests
+
+# Configuration
+CLIENT_ID = 'test'
+CLIENT_SECRET = 'hYQJ78K6j1SI2x8DA9ON2xk0dQ3YTxqW'
+APP_URL = 'https://vivek-test.runailabs-cs.com'   
+REALM = 'runai'
+
+def get_bearer_token():
+    """Get authentication token"""
+    token_url = f"{APP_URL}/auth/realms/{REALM}/protocol/openid-connect/token"
+    payload = {
+        "grant_type": "client_credentials",
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET
+    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    response = requests.post(token_url, data=payload, headers=headers)
+    response.raise_for_status()
+    return response.json()["access_token"]
+
+def get_tenant_id():
+    """Get tenant ID from clusters endpoint"""
+    token = get_bearer_token()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json"
+    }
+    
+    response = requests.get(f"{APP_URL}/api/v1/clusters", headers=headers)
+    response.raise_for_status()
+    
+    clusters = response.json()
+    if clusters and len(clusters) > 0:
+        tenant_id = clusters[0]['tenantId']
+        print(f"Tenant ID: {tenant_id}")
+        return tenant_id
+    else:
+        raise Exception("No clusters found")
+
+if __name__ == "__main__":
+    try:
+        get_tenant_id()
+    except Exception as e:
+        print(f"Error: {e}")
