@@ -1,0 +1,103 @@
+import requests
+import json
+
+# Configuration
+CLIENT_ID = 'test'
+CLIENT_SECRET = 'hYQJ78K6j1SI2x8DA9ON2xk0dQ3YTxqW'
+APP_URL = 'https://vivek-test.runailabs-cs.com'   
+REALM = 'runai'
+
+def get_bearer_token():
+    """Get authentication token"""
+    token_url = f"{APP_URL}/auth/realms/{REALM}/protocol/openid-connect/token"
+    payload = {
+        "grant_type": "client_credentials",
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET
+    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    response = requests.post(token_url, data=payload, headers=headers)
+    response.raise_for_status()
+    return response.json()["access_token"]
+
+def get_all_roles():
+    """Get all roles - handles both v1 and v2 API responses"""
+    token = get_bearer_token()
+    
+    # Try v2 API first
+    print("Checking v2 API...")
+    url = f"{APP_URL}/api/v2/authorization/roles"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json"
+    }
+    
+    response = requests.get(url, headers=headers)
+    print(f"v2 API Status: {response.status_code}")
+    
+    if response.status_code == 200:
+        data = response.json()
+        print(f"Response type: {type(data)}")
+        print(f"Response preview: {str(data)[:200]}")
+        
+        if isinstance(data, list) and len(data) > 0:
+            # Check if it's a list of strings (role IDs)
+            if isinstance(data[0], str):
+                print("\nAPI returned role IDs:")
+                for role_id in data:
+                    print(f"  - {role_id}")
+                return data
+    
+    # Try v1 API
+    print("\nChecking v1 API...")
+    url = f"{APP_URL}/api/v1/authorization/roles"
+    response = requests.get(url, headers=headers)
+    print(f"v1 API Status: {response.status_code}")
+    
+    if response.status_code == 200:
+        roles = response.json()
+        print(f"\nFound {len(roles)} roles:\n")
+        print(f"{'ID':<10} {'Name':<30} {'Custom':<10} {'Enabled'}")
+        print("-" * 60)
+        
+        for role in roles:
+            role_id = role.get('id', 'N/A')
+            name = role.get('name', 'Unknown')[:30]
+            custom = "Yes" if role.get('custom', False) else "No"
+            enabled = "Yes" if role.get('enabled', False) else "No"
+            print(f"{role_id:<10} {name:<30} {custom:<10} {enabled}")
+        
+        # Return just custom roles
+        custom_roles = [r for r in roles if r.get('custom', False)]
+        if custom_roles:
+            print(f"\nCustom roles: {[r['id'] for r in custom_roles]}")
+        
+        return roles
+    
+    print("❌ Failed to get roles from both APIs")
+    return None
+
+def get_specific_role(role_id):
+    """Get details of a specific role"""
+    token = get_bearer_token()
+    
+    url = f"{APP_URL}/api/v2/authorization/roles/{role_id}"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json"
+    }
+    
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        role = response.json()
+        print(f"\nRole Details for ID {role_id}:")
+        print(json.dumps(role, indent=2))
+        return role
+    else:
+        print(f"❌ Failed to get role {role_id}: {response.status_code} - {response.text}")
+        return None
+
+if __name__ == "__main__":
+    # Get all roles
+    get_all_roles()
