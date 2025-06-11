@@ -1,0 +1,58 @@
+import requests
+import json
+
+# Configuration
+CLIENT_ID = 'test'
+CLIENT_SECRET = 'hYQJ78K6j1SI2x8DA9ON2xk0dQ3YTxqW'
+APP_URL = 'https://vivek-test.runailabs-cs.com'   
+REALM = 'runai'
+
+def get_bearer_token():
+    """Get authentication token"""
+    token_url = f"{APP_URL}/auth/realms/{REALM}/protocol/openid-connect/token"
+    payload = {
+        "grant_type": "client_credentials",
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET
+    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    response = requests.post(token_url, data=payload, headers=headers)
+    response.raise_for_status()
+    return response.json()["access_token"]
+
+def enable_custom_roles():
+    """Enable custom roles feature flag"""
+    token = get_bearer_token()
+    
+    url = f"{APP_URL}/v1/k8s/setting"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "key": "tenant.enable_custom_roles",
+        "source": "Tenant",
+        "category": "Tenant",
+        "label": "Custom Roles",
+        "description": "Enable Custom Role Creation",
+        "type": "Boolean",
+        "value": True,
+        "enable": True
+    }
+    
+    response = requests.put(url, headers=headers, json=payload)
+    response.raise_for_status()
+    
+    if response.json().get("msg") == "done":
+        print("✅ Custom roles feature enabled successfully!")
+        return True
+    else:
+        print("❌ Failed to enable custom roles feature")
+        return False
+
+if __name__ == "__main__":
+    try:
+        enable_custom_roles()
+    except Exception as e:
+        print(f"Error: {e}")
