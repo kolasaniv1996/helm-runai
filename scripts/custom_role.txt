@@ -1,0 +1,87 @@
+import requests
+import json
+
+# Configuration
+CLIENT_ID = 'test'
+CLIENT_SECRET = 'hYQJ78K6j1SI2x8DA9ON2xk0dQ3YTxqW'
+APP_URL = 'https://vivek-test.runailabs-cs.com'   
+REALM = 'runai'
+TENANT_ID = '1001'
+
+def get_bearer_token():
+    """Get authentication token"""
+    token_url = f"{APP_URL}/auth/realms/{REALM}/protocol/openid-connect/token"
+    payload = {
+        "grant_type": "client_credentials",
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET
+    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    response = requests.post(token_url, data=payload, headers=headers)
+    response.raise_for_status()
+    return response.json()["access_token"]
+
+def create_role(role_name, description, permissions):
+    """Create a custom role"""
+    token = get_bearer_token()
+    
+    url = f"{APP_URL}/api/v2/authorization/roles"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "name": role_name,
+        "description": description,
+        "scopeType": "tenant",
+        "scopeId": TENANT_ID,
+        "permissions": permissions,
+        "enabled": True,
+        "kubernetesPermissions": {}
+    }
+    
+    response = requests.post(url, headers=headers, json=payload)
+    
+    if response.status_code == 201:
+        print(f"✅ Role '{role_name}' created successfully!")
+        return response.json()
+    elif response.status_code == 400 and "Route unsupported" in response.text:
+        print("❌ Custom roles feature is not enabled. Run enable script first.")
+    elif response.status_code == 409:
+        print(f"⚠️  Role '{role_name}' already exists.")
+    else:
+        print(f"❌ Failed to create role: {response.status_code} - {response.text}")
+    
+    return None
+
+# Example usage
+if __name__ == "__main__":
+    # Define permissions for the role
+    permissions = [
+        {
+            "resourceType": "project",
+            "displayName": "Projects",
+            "groupId": "organization",
+            "actions": ["read", "create", "update", "delete"]
+        },
+        {
+            "resourceType": "jobs",
+            "displayName": "Jobs",
+            "groupId": "workload",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "workspaces",
+            "displayName": "Workspaces",
+            "groupId": "workload",
+            "actions": ["create", "read", "update", "delete"]
+        }
+    ]
+    
+    # Create the role
+    create_role(
+        role_name="Custom_Workload_Manager",
+        description="Manages workloads and projects",
+        permissions=permissions
+    )
