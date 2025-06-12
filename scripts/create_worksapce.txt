@@ -1,0 +1,81 @@
+import requests
+
+# Configuration
+CLIENT_ID = 'test'
+CLIENT_SECRET = 'your secret'
+APP_URL = 'https://vivek-test.runailabs-cs.com'   
+REALM = 'runai'
+
+def get_bearer_token():
+    """Get authentication token"""
+    token_url = f"{APP_URL}/auth/realms/{REALM}/protocol/openid-connect/token"
+    payload = {
+        "grant_type": "client_credentials",
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET
+    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    response = requests.post(token_url, data=payload, headers=headers)
+    response.raise_for_status()
+    return response.json()["access_token"]
+
+def create_workspace(name, project_id, environment_id, compute_id):
+    """Create a new workspace"""
+    token = get_bearer_token()
+    
+    url = f"{APP_URL}/api/v2/workspace"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "meta": {
+            "name": name,
+            "projectId": project_id,
+            "clusterId": "1f9a482e-a356-47ad-934d-e680fc85e9bc"
+        },
+        "assets": {
+            "environment": environment_id,
+            "compute": compute_id,
+            "datasources": []
+        },
+        "specificRunParams": {
+            "args": "--NotebookApp.base_url=/${RUNAI_PROJECT}/${RUNAI_JOB_NAME} --NotebookApp.token=''",
+            "allowOverQuota": False,
+            "annotations": [],
+            "autoDeletionTimeAfterCompletionSeconds": 2592000,
+            "backoffLimit": 6,
+            "command": "start-notebook.sh",
+            "connections": [{"name": "Jupyter"}],
+            "environmentVariables": [],
+            "labels": [],
+            "nodePools": ["default"],
+            "nodeType": None,
+            "terminationGracePeriodSeconds": None,
+            "tolerations": []
+        }
+    }
+    
+    print(f"Creating workspace '{name}' in project {project_id}...")
+    
+    response = requests.post(url, headers=headers, json=payload)
+    
+    if response.status_code == 201:
+        print(f"✅ Workspace '{name}' created successfully!")
+        return response.json()
+    else:
+        print(f"❌ Failed to create workspace: {response.status_code} - {response.text}")
+        return None
+
+if __name__ == "__main__":
+    # Create a workspace
+    workspace = create_workspace(
+        name="testing",
+        project_id="4500001",
+        environment_id="123ff0ae-0970-4e37-9304-8ff81348bb53",
+        compute_id="e34faa7f-db94-40aa-82cb-faf8d4d3b143"
+    )
+    
+    if workspace:
+        print(f"\nWorkspace ID: {workspace.get('id', 'N/A')}")
