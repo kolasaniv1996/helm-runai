@@ -21,7 +21,7 @@ def get_bearer_token():
     response.raise_for_status()
     return response.json()["access_token"]
 
-def create_role(role_name, description, permissions):
+def create_role(role_name, description, permissions, scope_type="tenant", scope_id=None):
     """Create a custom role"""
     token = get_bearer_token()
     
@@ -34,36 +34,105 @@ def create_role(role_name, description, permissions):
     payload = {
         "name": role_name,
         "description": description,
-        "scopeType": "tenant",
-        "scopeId": TENANT_ID,
+        "scopeType": scope_type,
         "permissions": permissions,
         "enabled": True,
         "kubernetesPermissions": {}
     }
     
+    # Add scopeId only for tenant-scoped roles
+    if scope_type == "tenant" and scope_id:
+        payload["scopeId"] = scope_id
+    
+    print(f"Creating role with payload:")
+    print(json.dumps(payload, indent=2))
+    print("-" * 50)
+    
     response = requests.post(url, headers=headers, json=payload)
     
     if response.status_code == 201:
         print(f"✅ Role '{role_name}' created successfully!")
-        return response.json()
+        created_role = response.json()
+        print(f"Role ID: {created_role.get('id')}")
+        return created_role
     elif response.status_code == 400 and "Route unsupported" in response.text:
         print("❌ Custom roles feature is not enabled. Run enable script first.")
     elif response.status_code == 409:
         print(f"⚠️  Role '{role_name}' already exists.")
     else:
-        print(f"❌ Failed to create role: {response.status_code} - {response.text}")
+        print(f"❌ Failed to create role: {response.status_code}")
+        print(f"Response: {response.text}")
     
     return None
 
-# Example usage
 if __name__ == "__main__":
-    # Define permissions for the role
-    permissions = [
+    # System Administrator permissions (from the original System admin role)
+    system_admin_permissions = [
+        {
+            "resourceType": "tenant",
+            "displayName": "Account",
+            "groupId": "organization",
+            "actions": ["read"]
+        },
+        {
+            "resourceType": "nodes",
+            "displayName": "Nodes",
+            "groupId": "physical-resource",
+            "actions": ["read"]
+        },
+        {
+            "resourceType": "cluster-config",
+            "displayName": "Cluster configuration",
+            "groupId": "physical-resource",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "users",
+            "displayName": "Users",
+            "groupId": "iam",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "groups",
+            "displayName": "Groups",
+            "groupId": "iam",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "apps",
+            "displayName": "Applications",
+            "groupId": "iam",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "user-apps",
+            "displayName": "User applications",
+            "groupId": "iam",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "access_rules",
+            "displayName": "Access rules",
+            "groupId": "iam",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "roles",
+            "displayName": "Roles",
+            "groupId": "iam",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "department",
+            "displayName": "Departments",
+            "groupId": "organization",
+            "actions": ["create", "read", "update", "delete"]
+        },
         {
             "resourceType": "project",
             "displayName": "Projects",
             "groupId": "organization",
-            "actions": ["read", "create", "update", "delete"]
+            "actions": ["create", "read", "update", "delete"]
         },
         {
             "resourceType": "jobs",
@@ -72,16 +141,172 @@ if __name__ == "__main__":
             "actions": ["create", "read", "update", "delete"]
         },
         {
+            "resourceType": "workloads",
+            "displayName": "Workloads",
+            "groupId": "workload",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "credentials",
+            "displayName": "Credentials",
+            "groupId": "workload-asset",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
             "resourceType": "workspaces",
             "displayName": "Workspaces",
             "groupId": "workload",
             "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "trainings",
+            "displayName": "Trainings",
+            "groupId": "workload",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "inferences",
+            "displayName": "Inferences",
+            "groupId": "workload",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "environments",
+            "displayName": "Environments",
+            "groupId": "workload-asset",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "host-path-assets",
+            "displayName": "Data sources",
+            "groupId": "workload-asset",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "nfs-assets",
+            "displayName": "Data sources",
+            "groupId": "workload-asset",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "pvc-assets",
+            "displayName": "Data sources",
+            "groupId": "workload-asset",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "cm-volume-assets",
+            "displayName": "Data sources",
+            "groupId": "workload-asset",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "secret-volume-assets",
+            "displayName": "Data sources",
+            "groupId": "workload-asset",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "git-assets",
+            "displayName": "Data sources",
+            "groupId": "workload-asset",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "s3-assets",
+            "displayName": "Data sources",
+            "groupId": "workload-asset",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "compute-resources",
+            "displayName": "Compute resources",
+            "groupId": "workload-asset",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "templates",
+            "displayName": "Templates",
+            "groupId": "workload-asset",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "cluster",
+            "displayName": "Clusters",
+            "groupId": "physical-resource",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "nodepools",
+            "displayName": "Node pools",
+            "groupId": "physical-resource",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "settings",
+            "displayName": "Settings",
+            "groupId": "organization",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "events-history",
+            "displayName": "Event history",
+            "groupId": "organization",
+            "actions": ["read"]
+        },
+        {
+            "resourceType": "dashboards-overview",
+            "displayName": "Overview dashboard",
+            "groupId": "dashboard",
+            "actions": ["read"]
+        },
+        {
+            "resourceType": "dashboards-analytics",
+            "displayName": "Analytics dashboard",
+            "groupId": "dashboard",
+            "actions": ["read"]
+        },
+        {
+            "resourceType": "dashboards-consumption",
+            "displayName": "Consumption dashboard",
+            "groupId": "dashboard",
+            "actions": ["read"]
+        },
+        {
+            "resourceType": "policies",
+            "displayName": "Policies",
+            "groupId": "organization",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "datavolumes",
+            "displayName": "Data volumes",
+            "groupId": "workload-asset",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "datavolumes/sharedscopes",
+            "displayName": "Data volumes - sharing list",
+            "groupId": "workload-asset",
+            "actions": ["create", "read", "update", "delete"]
+        },
+        {
+            "resourceType": "storage-class-configuration",
+            "displayName": "Storage class configuration",
+            "groupId": "workload-asset",
+            "actions": ["create", "read", "update", "delete"]
         }
     ]
     
-    # Create the role
+    # Create the role with system admin permissions
+    print("Creating 'system_admin_vivek' role with full system administrator permissions...")
+    print(f"Total permissions: {len(system_admin_permissions)}")
+    print("=" * 60)
+    
     create_role(
-        role_name="Custom_Workload_Manager",
-        description="Manages workloads and projects",
-        permissions=permissions
+        role_name="system_admin_vivek",
+        description="Custom system administrator role for Vivek with full permissions",
+        permissions=system_admin_permissions,
+        scope_type="tenant",  # Change to "system" if you want system-wide scope
+        scope_id=TENANT_ID
     )
