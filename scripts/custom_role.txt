@@ -3,7 +3,7 @@ import json
 
 # Configuration
 CLIENT_ID = 'test'
-CLIENT_SECRET = 'hYQJ78K6j1SI2x8DA9ON2xk0dQ3YTxqW'
+CLIENT_SECRET = 'your secret'
 APP_URL = 'https://vivek-test.runailabs-cs.com'   
 REALM = 'runai'
 TENANT_ID = '1001'
