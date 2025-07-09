@@ -37,7 +37,9 @@ def create_role(role_name, description, permissions, scope_type="tenant", scope_
         "scopeType": scope_type,
         "permissions": permissions,
         "enabled": True,
-        "kubernetesPermissions": {}
+        "kubernetesPermissions": {
+                "predefinedRole": "10"
+            }
     }
     
     # Add scopeId only for tenant-scoped roles
