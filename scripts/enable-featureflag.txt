@@ -3,8 +3,8 @@ import json
 
 # Configuration
 CLIENT_ID = 'test'
-CLIENT_SECRET = 'hYQJ78K6j1SI2x8DA9ON2xk0dQ3YTxqW'
-APP_URL = 'https://vivek-test.runailabs-cs.com'   
+CLIENT_SECRET = 'xx'
+APP_URL = 'xx'   
 REALM = 'runai'
 
 def get_bearer_token():
